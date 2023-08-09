@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -eE -o pipefail
+
+function main() {
+  local command
+  command=${1?"command is required"}
+
+  case $command in
+  up | u) up ;;
+  down | d) down ;;
+  esac
+}
+
+function up() {
+  k3d registry create "${K3D_REGISTRY_NAME}" --port "${K3D_REGISTRY_PORT}"
+  k3d cluster create --agents 3 --registry-use "k3d-${K3D_REGISTRY_NAME}:${K3D_REGISTRY_PORT}" \
+    "${K3D_CLUSTER_NAME}"
+
+  echo 'make sure to run "direnv reload" to load the KUBECONFIG or execute the following command:'
+  echo 'export KUBECONFIG=$(k3d kubeconfig write "${K3D_CLUSTER_NAME}")'
+}
+
+function down() {
+  k3d cluster delete "${K3D_CLUSTER_NAME}" || :
+  k3d registry delete "${K3D_REGISTRY_NAME}" || :
+}
+
+main "${@}"

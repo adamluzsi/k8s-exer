@@ -1,0 +1,46 @@
+version: '3'
+services:
+
+  k3s-server:
+    image: "rancher/k3s:${K3S_VERSION:-latest}"
+    command: server --datastore-endpoint 'etcd' # Change to embedded etcd
+    tmpfs:
+      - /run
+      - /var/run
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+    privileged: true
+    restart: always
+    environment:
+      - K3S_TOKEN=${K3S_TOKEN:?err}
+      - K3S_KUBECONFIG_OUTPUT=/output/kubeconfig.yaml
+      - K3S_KUBECONFIG_MODE=666
+    volumes:
+      - ./tmp/k3s/server:/var/lib/rancher/k3s
+      - ./tmp/k3s/:/output # This is just so that we get the kubeconfig file out
+    ports:
+      - 6443:6443  # Kubernetes API Server
+      - 80:80      # Ingress controller port 80
+      - 443:443    # Ingress controller port 443
+
+  k3s-agent:
+    image: "rancher/k3s:${K3S_VERSION:-latest}"
+    tmpfs:
+      - /run
+      - /var/run
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+    privileged: true
+    restart: always
+    environment:
+      - K3S_URL=https://k3s-server:6443
+      - K3S_TOKEN=${K3S_TOKEN:?err}
+
+volumes:
+  k3s-server: { }
